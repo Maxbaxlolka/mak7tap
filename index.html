@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Слот 3 линии</title>
+
+<style>
+body{
+margin:0;height:100vh;overflow:hidden;
+background:linear-gradient(180deg,#0a0a16,#1a1a2d);
+font-family:"Segoe UI",sans-serif;color:#fff;
+}
+
+/* BOKEH */
+.bokeh{
+position:absolute;border-radius:50%;
+background:rgba(255,255,255,.12);
+filter:blur(35px);
+animation:float 20s infinite ease-in-out;
+}
+@keyframes float{
+0%{transform:none}
+50%{transform:translate(300px,200px) scale(1.4)}
+100%{transform:none}
+}
+
+/* AURORA */
+#aurora{
+position:fixed;inset:0;pointer-events:none;z-index:500;
+background:
+radial-gradient(ellipse at top,rgba(0,255,200,.25),transparent 60%),
+radial-gradient(ellipse at 20% 10%,rgba(0,150,255,.2),transparent 70%),
+radial-gradient(ellipse at 80% 0%,rgba(180,0,255,.25),transparent 70%);
+animation:auroraMove 15s ease-in-out infinite alternate;
+}
+@keyframes auroraMove{
+0%{filter:blur(40px)}
+50%{filter:blur(55px) hue-rotate(30deg)}
+100%{filter:blur(70px) hue-rotate(60deg)}
+}
+
+/* SLOT */
+#slotContainer{
+position:fixed;top:35%;left:50%;
+transform:translate(-50%,-50%);
+display:flex;flex-direction:column;align-items:center;
+z-index:3000;
+}
+#reels{display:flex;gap:10px}
+.reel{width:80px;height:240px;overflow:hidden;position:relative}
+.symbol{
+width:80px;height:80px;
+display:flex;align-items:center;justify-content:center;
+font-size:42px;
+}
+
+/* WIN EFFECT */
+.symbol.win{
+animation:winGlow .8s ease-in-out infinite alternate,
+winShake .12s linear infinite;
+}
+@keyframes winGlow{
+from{
+background:rgba(120,200,255,.15);
+box-shadow:0 0 8px rgba(150,220,255,.7),
+inset 0 0 10px rgba(200,240,255,.9);
+}
+to{
+background:rgba(160,220,255,.3);
+box-shadow:0 0 16px rgba(180,240,255,1),
+inset 0 0 14px rgba(230,255,255,1);
+}
+}
+@keyframes winShake{
+0%{transform:translate(0,0)}
+25%{transform:translate(1px,-1px)}
+50%{transform:translate(-1px,1px)}
+75%{transform:translate(1px,1px)}
+100%{transform:translate(0,0)}
+}
+
+/* BUTTONS */
+#spinBtn{
+width:60px;height:60px;font-size:32px;
+background:none;border:none;color:white;
+cursor:pointer;
+margin-top:15px;
+}
+#spinBtn:disabled{opacity:.4;cursor:not-allowed}
+
+#balanceBtn{
+position:fixed;top:20px;left:50%;
+transform:translateX(-50%);
+padding:10px 25px;
+background:rgba(0,0,0,0); /* полностью прозрачный фон */
+border-radius:15px;font-size:20px;
+z-index:2000;cursor:pointer;
+}
+
+#bottomButtons{
+position:fixed;bottom:220px;
+left:50%;
+transform:translateX(-50%);
+display:flex;gap:20px;z-index:2000;
+}
+#toggleSnow,#soundBtn{
+width:50px;height:50px;
+font-size:26px;
+background:none;border:none;
+color:white;cursor:pointer;
+transition:.2s;
+}
+
+/* SNOW */
+.snowflake{
+position:absolute;pointer-events:none;
+color:white;opacity:.9;
+}
+</style>
+</head>
+
+<body>
+
+<div class="bokeh"></div><div class="bokeh"></div><div class="bokeh"></div>
+<div id="aurora"></div>
+
+<a id="balanceBtn">🍊 100</a>
+
+<div id="slotContainer">
+<div id="reels">
+<div class="reel" id="r1"></div>
+<div class="reel" id="r2"></div>
+<div class="reel" id="r3"></div>
+</div>
+<button id="spinBtn">🍊</button>
+</div>
+
+<div id="bottomButtons">
+<button id="toggleSnow">❄</button>
+<button id="soundBtn">🎵</button>
+</div>
+
+<audio id="bgMusic" loop src="noviygodyra.mp3"></audio>
+<audio id="spinSound" src="10d4fad49a948a3.mp3"></audio>
+<audio id="santaMusic" src="a78f433891f3a1t.mp3"></audio>
+
+<script>
+/* SLOT */
+let balance = Number(localStorage.getItem('balance')) || 100;
+let spinning=false,soundOn=true;
+let freeSpins=0;
+const reels=[r1,r2,r3];
+const symbols=['🎄','🎁','❄','🍊','🦌','🎅','🍬','🍪','🛷','⭐','⛄','🎀','🧦','🔔'];
+const reelData=[];
+
+reels.forEach(reel=>{
+const inner=document.createElement('div');
+inner.className='reelInner';
+inner.style.position='absolute';
+inner.style.display='flex';
+inner.style.flexDirection='column';
+const data=[];
+for(let i=0;i<15;i++){
+const d=document.createElement('div');
+d.className='symbol';
+const s=symbols[Math.floor(Math.random()*symbols.length)];
+d.textContent=s;data.push(s);inner.appendChild(d);
+}
+reel.appendChild(inner);reelData.push(data);
+});
+
+function updateBalance(){
+  balanceBtn.textContent='🍊 '+balance;
+  localStorage.setItem('balance', balance);
+}
+updateBalance();
+
+function highlight(row, indices){
+indices.forEach(i=>{
+const el=reels[i].querySelector('.reelInner').children[row];
+el.classList.add('win');
+setTimeout(()=>el.classList.remove('win'),1200);
+});
+}
+
+function doSpin(isFree=false){
+  if (spinning) return;
+  spinning = true;
+  spinBtn.disabled = true;
+  if(!isFree) balance--; 
+  updateBalance();
+
+  reels.forEach((reel, i) => {
+    const inner = reel.querySelector('.reelInner');
+    const data = reelData[i];
+    const steps = 6 + Math.floor(Math.random() * 6);
+
+    inner.style.transition = 'none';
+    inner.style.top = '0px';
+
+    requestAnimationFrame(() => {
+      inner.style.transition = 'top 1s cubic-bezier(0.25, 0.1, 0.25, 1)';
+      inner.style.top = (-80 * steps) + 'px';
+    });
+
+    setTimeout(() => {
+      for (let j = 0; j < steps; j++) data.push(data.shift());
+      inner.innerHTML = '';
+      data.forEach(s => {
+        const d = document.createElement('div');
+        d.className = 'symbol';
+        d.textContent = s;
+        inner.appendChild(d);
+      });
+      inner.style.transition = 'none';
+      inner.style.top = '0';
+    }, 1000);
+  });
+
+  if (soundOn) { spinSound.currentTime = 0; spinSound.play().catch(() => {}); }
+
+  setTimeout(() => {
+    let gotThreeSanta=false;
+    [0,1,2].forEach(row => {
+      const line = reels.map(r => r.querySelector('.reelInner').children[row].textContent);
+
+      if(line[0] === line[1] && line[1] === line[2]){
+        balance += 30;
+        highlight(row,[0,1,2]);
+        if(soundOn && line[0] === '🎅'){
+          santaMusic.currentTime = 0;
+          santaMusic.play().catch(()=>{});
+          gotThreeSanta=true;
+        }
+      } else if(line[0] === line[1]){
+        balance += 2;
+        highlight(row,[0,1]);
+        if(soundOn && line[0] === '🎅'){
+          santaMusic.currentTime = 0;
+          santaMusic.play().catch(()=>{});
+        }
+      }
+    });
+
+    updateBalance();
+    spinning = false;
+
+    if(gotThreeSanta && !isFree){
+      freeSpins = 15;
+      runFreeSpins();
+    } else {
+      spinBtn.disabled = false;
+    }
+  }, 1100);
+}
+
+function runFreeSpins(){
+  if(freeSpins<=0){
+    spinBtn.disabled = false;
+    return;
+  }
+  freeSpins--;
+  doSpin(true);
+  setTimeout(runFreeSpins, 1500);
+}
+
+let holdTimer=null;
+let autoSpinInterval=null;
+
+spinBtn.addEventListener('mousedown',()=>{
+  holdTimer=setTimeout(()=>{
+    autoSpinInterval=setInterval(()=>{
+      if(!spinning) doSpin();
+    },1200);
+  },1000);
+});
+spinBtn.addEventListener('mouseup',()=>{
+  clearTimeout(holdTimer);
+  clearInterval(autoSpinInterval);
+});
+spinBtn.addEventListener('mouseleave',()=>{
+  clearTimeout(holdTimer);
+  clearInterval(autoSpinInterval);
+});
+spinBtn.onclick=()=>{ doSpin(); };
+
+// SNOW по центральной полосе шириной 500px, менее интенсивный
+let snowOn=true;
+toggleSnow.onclick=()=>{
+snowOn=!snowOn;
+toggleSnow.style.opacity=snowOn?1:.4;
+};
+setInterval(()=>{
+if(!snowOn)return;
+const s=document.createElement('div');
+s.className='snowflake';
+s.textContent='❄';
+// Центр экрана, ширина полосы 500px
+s.style.left=(window.innerWidth/2 - 250 + Math.random()*500)+'px';
+s.style.top='-20px';
+s.style.fontSize=8+Math.random()*16+'px';
+document.body.appendChild(s);
+let y=0;
+const fall=setInterval(()=>{
+y+=2;s.style.top=y+'px';
+if(y>innerHeight){clearInterval(fall);s.remove();}
+},16);
+},250); // увеличен интервал, снег менее интенсивный
+
+soundBtn.onclick=()=>{
+soundOn=!soundOn;
+soundBtn.style.opacity=soundOn?1:.4;
+[bgMusic,spinSound,santaMusic].forEach(a=>{
+a.pause();a.currentTime=0;
+});
+if(soundOn) bgMusic.play().catch(()=>{});
+};
+document.body.addEventListener('click',()=>{
+if(soundOn) bgMusic.play().catch(()=>{});
+},{once:true});
+</script>
+
+</body>
+</html>
