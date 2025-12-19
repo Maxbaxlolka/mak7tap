@@ -65,7 +65,7 @@ canvas {position:absolute; inset:0; pointer-events:none;}
 </div>
 <script>
 const symbols=['⚽','🥇','🥈','👟','🔴','🟡','🥅','🏆','🧤','🧦'];
-const weights={'⚽':300,'🥇':375,'🥈':375,'🥉':300,'👟':300,'🔴':300,'🟡':275,'🥅':300,'🏆':255,'🧤':275,'🧦':265};
+const weights={'⚽':375,'🥇':375,'🥈':375,'🥉':300,'👟':300,'🔴':300,'🟡':275,'🥅':300,'🏆':255,'🧤':275,'🧦':265};
 const reelsContainer=document.getElementById('reels');
 let reels=[];
 for(let i=0;i<9;i++){let div=document.createElement('div'); div.className='reel'; div.textContent=randomSymbol(); reels.push(div); reelsContainer.appendChild(div);}
@@ -112,6 +112,7 @@ window.addEventListener('resize',resizeFix); resizeFix();
 </script>
 </body>
 </html>
+
 
 
 
