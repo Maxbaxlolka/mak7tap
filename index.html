@@ -346,7 +346,7 @@ function doSpin(){
   const fsSound = isFSSpin ? fsSounds[Math.floor(Math.random() * fsSounds.length)] : null;
 
   // ✅ Процентный шанс выпадения FS символа в NORMAL режиме
-  const chanceFS = 0.07; // 7% шанс, можно регулировать
+  const chanceFS = 0.09; // 9% шанс, можно регулировать
 
   imgs.forEach((img, i) => {
     setTimeout(() => {
@@ -554,6 +554,7 @@ musicSlider.oninput = e => {
 </script>
 </body>
 </html>
+
 
 
 
