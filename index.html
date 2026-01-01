@@ -154,15 +154,24 @@ let audioUnlocked = false;
  const autoBtn=document.getElementById("autoBtn");
  const spinBtn=document.getElementById("spinBtn");
 
- /* ================= ОТДЕЛ 7. GAME DATA / КОНФИГ ================= */
- const symbols=[
-  "symbols/jack.gif","symbols/queen.gif","symbols/king.gif",
-  "symbols/spade.gif","symbols/ace.gif","symbols/bubna.gif",
-  "symbols/ten.gif","symbols/chirwa.gif","symbols/kresta.gif",
-  "symbols/BrandsymbolX.gif"
- ];
+/* ================= ОТДЕЛ 7. GAME DATA / КОНФИГ ================= */
 
- const payouts={
+const ASSET_PATH = "./"; // корень проекта (GitHub Pages safe)
+
+const symbols = [
+  `${ASSET_PATH}symbols/jack.gif`,
+  `${ASSET_PATH}symbols/queen.gif`,
+  `${ASSET_PATH}symbols/king.gif`,
+  `${ASSET_PATH}symbols/spade.gif`,
+  `${ASSET_PATH}symbols/ace.gif`,
+  `${ASSET_PATH}symbols/bubna.gif`,
+  `${ASSET_PATH}symbols/ten.gif`,
+  `${ASSET_PATH}symbols/chirwa.gif`,
+  `${ASSET_PATH}symbols/kresta.gif`,
+  `${ASSET_PATH}symbols/BrandsymbolX.gif`
+];
+
+const payouts = {
   "jack.gif":[5,15,30,60],
   "queen.gif":[5,15,30,60],
   "king.gif":[8,20,40,80],
@@ -172,49 +181,54 @@ let audioUnlocked = false;
   "ten.gif":[4,10,20,40],
   "chirwa.gif":[5,12,25,50],
   "kresta.gif":[5,12,25,50]
- };
+};
 
- const normalSounds={
-  "ace.gif":"tuzovvrukave.mp3",
-  "bubna.gif":"bubey.mp3",
-  "chirwa.gif":"chirvaaa.mp3",
-  "jack.gif":"valatovmnevadnomesto.mp3",
-  "king.gif":"karalyuokpdepodast.mp3",
-  "kresta.gif":"krestamyzluh.mp3",
-  "queen.gif":"daminarukah.mp3",
-  "spade.gif":"pikaa.mp3",
-  "ten.gif":"desyatkaznakizdesyaty.mp3"
- };
+const normalSounds = {
+  "ace.gif":`${ASSET_PATH}tuzovvrukave.mp3`,
+  "bubna.gif":`${ASSET_PATH}bubey.mp3`,
+  "chirwa.gif":`${ASSET_PATH}chirvaaa.mp3`,
+  "jack.gif":`${ASSET_PATH}valatovmnevadnomesto.mp3`,
+  "king.gif":`${ASSET_PATH}karalyuokpdepodast.mp3`,
+  "kresta.gif":`${ASSET_PATH}krestamyzluh.mp3`,
+  "queen.gif":`${ASSET_PATH}daminarukah.mp3`,
+  "spade.gif":`${ASSET_PATH}pikaa.mp3`,
+  "ten.gif":`${ASSET_PATH}desyatkaznakizdesyaty.mp3`
+};
 
- const overlays=[
-  "symbols/Zarisovka1version.gif",
-  "symbols/zarisovka2version.gif"
- ];
+const overlays = [
+  `${ASSET_PATH}symbols/Zarisovka1version.gif`,
+  `${ASSET_PATH}symbols/zarisovka2version.gif`
+];
 
- const fsSymbols=[
-  {img:"symbols/1.gif",val:1},
-  {img:"symbols/2.gif",val:2},
-  {img:"symbols/5.gif",val:5},
-  {img:"symbols/10.gif",val:10},
-  {img:"symbols/15.gif",val:15},
-  {img:"symbols/20.gif",val:20},
-  {img:"symbols/25.gif",val:25},
-  {img:"symbols/50.gif",val:50},
-  {img:"symbols/75.gif",val:75},
-  {img:"symbols/100.gif",val:100},
-  {img:"symbols/150.gif",val:150},
-  {img:"symbols/200.gif",val:200}
- ];
+const fsSymbols = [
+  {img:`${ASSET_PATH}symbols/1.gif`,val:1},
+  {img:`${ASSET_PATH}symbols/2.gif`,val:2},
+  {img:`${ASSET_PATH}symbols/5.gif`,val:5},
+  {img:`${ASSET_PATH}symbols/10.gif`,val:10},
+  {img:`${ASSET_PATH}symbols/15.gif`,val:15},
+  {img:`${ASSET_PATH}symbols/20.gif`,val:20},
+  {img:`${ASSET_PATH}symbols/25.gif`,val:25},
+  {img:`${ASSET_PATH}symbols/50.gif`,val:50},
+  {img:`${ASSET_PATH}symbols/75.gif`,val:75},
+  {img:`${ASSET_PATH}symbols/100.gif`,val:100},
+  {img:`${ASSET_PATH}symbols/150.gif`,val:150},
+  {img:`${ASSET_PATH}symbols/200.gif`,val:200}
+];
 
- const fsSounds=[
-  "edynytsanebulytsa.mp3","dvoechkadurachka.mp3",
-  "pyatrazpoodnomu.mp3","desyatochkipregodyatsa.mp3",
-  "pyutnashkuvkarmashke.mp3","dvatsashkekbalashku.mp3",
-  "uhtudvadtsatpyat.mp3","klasspedesyuat.mp3",
-  "semdesyuatpyat.mp3","storazpoodnomu.mp3",
-  "stopedtesyatochki.mp3","dvuhsotenhvatyt.mp3"
- ];
-
+const fsSounds = [
+  `${ASSET_PATH}edynytsanebulytsa.mp3`,
+  `${ASSET_PATH}dvoechkadurachka.mp3`,
+  `${ASSET_PATH}pyatrazpoodnomu.mp3`,
+  `${ASSET_PATH}desyatochkipregodyatsa.mp3`,
+  `${ASSET_PATH}pyutnashkuvkarmashke.mp3`,
+  `${ASSET_PATH}dvatsashkekbalashku.mp3`,
+  `${ASSET_PATH}uhtudvadtsatpyat.mp3`,
+  `${ASSET_PATH}klasspedesyuat.mp3`,
+  `${ASSET_PATH}semdesyuatpyat.mp3`,
+  `${ASSET_PATH}storazpoodnomu.mp3`,
+  `${ASSET_PATH}stopedtesyatochki.mp3`,
+  `${ASSET_PATH}dvuhsotenhvatyt.mp3`
+];
  /* ================= ОТДЕЛ 8. HELPERS ================= */
  const getBalance=()=>demo?demoBalance:realBalance;
  const setBalance=v=>demo?demoBalance=v:realBalance=v;
@@ -540,3 +554,4 @@ musicSlider.oninput = e => {
 </script>
 </body>
 </html>
+
