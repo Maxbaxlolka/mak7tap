@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- ================= ОТДЕЛ 1. HEAD / МЕТАДАННЫЕ ================= -->
+<head>
+<meta charset="UTF-8">
+<title>ColorX Slot</title>
+
+<!-- ================= ОТДЕЛ 2. CSS / ВНЕШНИЙ ВИД ================= -->
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+html,body{
+ width:100%;height:100%;
+ background:#fff;
+ display:flex;flex-direction:column;align-items:center
+}
+button{
+ background:#000;color:#fff;border:none;
+ padding:10px 14px;border-radius:6px;
+ cursor:pointer
+}
+button:disabled{opacity:.4}
+#topBalance{display:flex;gap:10px;margin:10px 0}
+#slot-wrapper{height:60vh;display:flex;align-items:center}
+#slot{
+ width:90vw;max-width:600px;aspect-ratio:6/3;
+ display:grid;
+ grid-template-columns:repeat(6,1fr);
+ grid-template-rows:repeat(3,1fr);
+ gap:8px
+}
+.cell{position:relative}
+.cell img{width:100%;height:100%;object-fit:contain}
+.cell img.fs{transform:scale(.9)}
+.overlay{position:absolute;inset:0;pointer-events:none}
+.slider{width:90px;accent-color:black}
+.row{display:flex;gap:8px;align-items:center}
+.col{display:flex;flex-direction:column;gap:8px;align-items:center}
+#spinBtn{padding:18px 36px;font-size:20px}
+#fsBalance{font-weight:bold}
+</style>
+</head>
+
+<body>
+
+<!-- ================= ОТДЕЛ 3. HTML / ИНТЕРФЕЙС ================= -->
+
+<!-- Баланс -->
+<div id="topBalance">
+ <button id="realMinus">−</button>
+ <div id="balanceBtn">DEMO: 0.00</div>
+ <button id="realPlus">+</button>
+</div>
+
+<!-- Слот -->
+<div id="slot-wrapper">
+ <div id="slot"></div>
+</div>
+
+<!-- Управление -->
+<div class="col">
+ <button id="spinBtn">SPIN</button>
+
+ <div class="row">
+  <button id="betMinus">−</button>
+  <div id="betScore">1</div>
+  <button id="betPlus">+</button>
+ </div>
+
+ <button id="autoBtn">AUTO OFF</button>
+
+ <div class="row">
+  <button id="x2Btn" disabled>X2</button>
+  <button id="fsBtn">FREE SPINS: 0</button>
+ </div>
+
+ <div class="col">
+  <div class="row">
+   <button id="soundBtn">SOUND</button>
+   <input id="soundSlider" class="slider" type="range" min="0" max="1" step="0.01" value="1" hidden>
+  </div>
+
+  <div class="row">
+   <button id="musicBtn">MUSIC</button>
+   <input id="musicSlider" class="slider" type="range" min="0" max="1" step="0.01" value="0.5" hidden>
+  </div>
+
+  <button id="promoBtn">PROMO</button>
+  <button id="demoBtn">REAL / DEMO</button>
+ </div>
+</div>
+
+<!-- ================= X2 MINI-GAME UI ================= -->
+<div id="x2Overlay"
+ style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.8);
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:20px;
+  z-index:999
+ ">
+
+ <div id="x2Balance" style="color:#fff;font-size:24px;font-weight:bold">
+  X2 BALANCE: 0.00
+ </div>
+
+ <div class="row">
+  <button id="x2Left" style="font-size:32px;padding:20px 30px">X</button>
+  <button id="x2Right" style="font-size:32px;padding:20px 30px">0</button>
+ </div>
+
+ <button id="takeBtn" style="padding:12px 30px;font-size:18px">
+  TAKE
+ </button>
+</div>
+
+<!-- ================= ОТДЕЛ 4. AUDIO ================= -->
+<audio id="bg" src="ColorX – Creative Flow.mp3" loop></audio>
+
+<script>
+
+/* ================= ОТДЕЛ 5. STATE / СОСТОЯНИЕ ИГРЫ ================= */
+
+// ✅ загрузка режима из localStorage, если есть
+let demo = localStorage.getItem("mode") === "real" ? false : true;
+
+let demoBalance = 1000000,
+    realBalance = 0;
+
+let bet = 1,
+    auto = false,
+    spinning = false;
+
+let freeSpins = 0,
+    fsBalance = 0,
+    isFSSpin = false;
+
+// ✅ при первом запуске звуки и музыка на минимуме 5%
+let soundVolume = 0.05; // 5% от полной громкости
+let musicVolume = 0.05; // 5% от полной громкости
+let audioUnlocked = false;
+
+ /* ================= ОТДЕЛ 6. DOM ELEMENTS ================= */
+ const slot=document.getElementById("slot");
+ const bg=document.getElementById("bg");
+ const balanceBtn=document.getElementById("balanceBtn");
+ const betScore=document.getElementById("betScore");
+ const fsBtn=document.getElementById("fsBtn");
+ const fsBalanceEl=document.getElementById("fsBalance");
+ const autoBtn=document.getElementById("autoBtn");
+ const spinBtn=document.getElementById("spinBtn");
+
+ /* ================= ОТДЕЛ 7. GAME DATA / КОНФИГ ================= */
+ const symbols=[
+  "symbols/jack.gif","symbols/queen.gif","symbols/king.gif",
+  "symbols/spade.gif","symbols/ace.gif","symbols/bubna.gif",
+  "symbols/ten.gif","symbols/chirwa.gif","symbols/kresta.gif",
+  "symbols/BrandsymbolX.gif"
+ ];
+
+ const payouts={
+  "jack.gif":[5,15,30,60],
+  "queen.gif":[5,15,30,60],
+  "king.gif":[8,20,40,80],
+  "spade.gif":[2,5,10,20],
+  "ace.gif":[10,25,50,100],
+  "bubna.gif":[2,5,10,20],
+  "ten.gif":[4,10,20,40],
+  "chirwa.gif":[5,12,25,50],
+  "kresta.gif":[5,12,25,50]
+ };
+
+ const normalSounds={
+  "ace.gif":"tuzovvrukave.mp3",
+  "bubna.gif":"bubey.mp3",
+  "chirwa.gif":"chirvaaa.mp3",
+  "jack.gif":"valatovmnevadnomesto.mp3",
+  "king.gif":"karalyuokpdepodast.mp3",
+  "kresta.gif":"krestamyzluh.mp3",
+  "queen.gif":"daminarukah.mp3",
+  "spade.gif":"pikaa.mp3",
+  "ten.gif":"desyatkaznakizdesyaty.mp3"
+ };
+
+ const overlays=[
+  "symbols/Zarisovka1version.gif",
+  "symbols/zarisovka2version.gif"
+ ];
+
+ const fsSymbols=[
+  {img:"symbols/1.gif",val:1},
+  {img:"symbols/2.gif",val:2},
+  {img:"symbols/5.gif",val:5},
+  {img:"symbols/10.gif",val:10},
+  {img:"symbols/15.gif",val:15},
+  {img:"symbols/20.gif",val:20},
+  {img:"symbols/25.gif",val:25},
+  {img:"symbols/50.gif",val:50},
+  {img:"symbols/75.gif",val:75},
+  {img:"symbols/100.gif",val:100},
+  {img:"symbols/150.gif",val:150},
+  {img:"symbols/200.gif",val:200}
+ ];
+
+ const fsSounds=[
+  "edynytsanebulytsa.mp3","dvoechkadurachka.mp3",
+  "pyatrazpoodnomu.mp3","desyatochkipregodyatsa.mp3",
+  "pyutnashkuvkarmashke.mp3","dvatsashkekbalashku.mp3",
+  "uhtudvadtsatpyat.mp3","klasspedesyuat.mp3",
+  "semdesyuatpyat.mp3","storazpoodnomu.mp3",
+  "stopedtesyatochki.mp3","dvuhsotenhvatyt.mp3"
+ ];
+
+ /* ================= ОТДЕЛ 8. HELPERS ================= */
+ const getBalance=()=>demo?demoBalance:realBalance;
+ const setBalance=v=>demo?demoBalance=v:realBalance=v;
+
+ function playSound(src){
+  if(!src) return;
+  const a=new Audio(src);
+  a.volume=soundVolume;
+  a.play();
+ }
+
+/* ================= ОТДЕЛ X. X2 MINI-GAME ================= */
+
+/* === X2 STATE === */
+let lastWin = 0;        // последний выигрыш
+let x2CurrentWin = 0;  // текущая сумма в X2
+let x2Active = false;  // активен ли X2
+
+/* === X2 ELEMENTS === */
+const x2Btn = document.getElementById("x2Btn");
+const x2Overlay = document.getElementById("x2Overlay");
+const x2BalanceEl = document.getElementById("x2Balance");
+const x2Left = document.getElementById("x2Left");
+const x2Right = document.getElementById("x2Right");
+const takeBtn = document.getElementById("takeBtn");
+
+/* === ОБНОВЛЕНИЕ UI X2 === */
+function updateX2UI(){
+ x2BalanceEl.textContent = `X2 BALANCE: ${x2CurrentWin.toFixed(2)}`;
+ x2Btn.disabled = !x2Active;
+}
+
+/* === АКТИВАЦИЯ X2 ПОСЛЕ ВЫИГРЫША === */
+function enableX2(win){
+ if(win <= 0) return;
+ lastWin = win;
+ x2CurrentWin = win;
+ x2Active = true;
+ updateX2UI();
+}
+
+/* === ОТКРЫТЬ X2 === */
+x2Btn.onclick = () => {
+ if(!x2Active) return;
+ x2Overlay.style.display = "flex";
+};
+
+/* === TAKE — ЗАБРАТЬ ВЫИГРЫШ === */
+takeBtn.onclick = () => {
+ setBalance(getBalance() + x2CurrentWin);
+ x2CurrentWin = 0;
+ x2Active = false;
+ x2Overlay.style.display = "none";
+ updateX2UI();
+ updateUI();
+};
+
+/* === ВЫБОР В X2 (50/50) === */
+x2Left.onclick = x2Pick;
+x2Right.onclick = x2Pick;
+
+function x2Pick(){
+ if(!x2Active) return;
+
+ const isWin = Math.random() < 0.5;
+
+ if(isWin){
+  // ✅ УГАДАЛ — УДВАИВАЕМ И ОСТАЁМСЯ В X2
+  x2CurrentWin *= 2;
+  playSound("x2onminigame.mp3");
+  updateX2UI();
+ }else{
+  // ❌ НЕ УГАДАЛ — СГОРЕЛО И ВЫХОД ИЗ X2
+  x2CurrentWin = 0;
+  setBalance(getBalance() - lastWin);
+  x2Active = false;
+  x2Overlay.style.display = "none";
+  playSound("x2offminigame.mp3");
+  updateX2UI();
+  updateUI();
+ }
+}
+
+ /* ================= ОТДЕЛ 9. GRID / СЕТКА ================= */
+ function createGrid(){
+  slot.innerHTML="";
+  for(let i=0;i<18;i++){
+   const c=document.createElement("div");
+   c.className="cell";
+   const img=document.createElement("img");
+   img.src=symbols[Math.random()*symbols.length|0];
+   c.appendChild(img);
+   slot.appendChild(c);
+  }
+ }
+
+/* ================= ОТДЕЛ 10. SPIN ENGINE ================= */
+function doSpin(){
+  if(spinning) return;
+
+  if(!audioUnlocked){
+    audioUnlocked = true;
+    bg.volume = musicVolume;
+    bg.play().catch(()=>{});
+  }
+
+  isFSSpin = freeSpins > 0;
+  if(!isFSSpin && getBalance() < bet) return;
+  if(!isFSSpin) setBalance(getBalance() - bet);
+
+  spinning = true;
+  document.querySelectorAll(".overlay").forEach(o => o.remove());
+
+  const imgs = [...document.querySelectorAll(".cell img")];
+  const fsSound = isFSSpin ? fsSounds[Math.floor(Math.random() * fsSounds.length)] : null;
+
+  // ✅ Процентный шанс выпадения FS символа в NORMAL режиме
+  const chanceFS = 0.07; // 7% шанс, можно регулировать
+
+  imgs.forEach((img, i) => {
+    setTimeout(() => {
+      if(isFSSpin){
+        // Free Spins режим — обычная логика FS символов
+        const f = fsSymbols[Math.floor(Math.random() * fsSymbols.length)];
+        img.src = f.img;
+        img.dataset.val = f.val;
+        img.classList.add("fs");
+      } else {
+        // NORMAL MODE
+        if(Math.random() < chanceFS){
+          // ✅ Выпал FS символ
+          img.src = "symbols/BrandsymbolX.gif";
+          img.dataset.val = 0; // значение для начисления FS в NORMAL
+          playSound("brandybolsx.mp3"); // звук при появлении
+        } else {
+          // обычный символ
+          const regularSymbols = symbols.filter(s => !s.includes("BrandsymbolX.gif"));
+          img.src = regularSymbols[Math.floor(Math.random() * regularSymbols.length)];
+          img.dataset.val = 0;
+          img.classList.remove("fs");
+        }
+      }
+
+      // Воспроизвести звук Free Spins, если первый символ и режим FS
+      if(i === 0 && fsSound) playSound(fsSound);
+
+      // Завершение спина
+      if(i === imgs.length - 1) finishSpin();
+    }, i * 200);
+  });
+}
+
+
+/* ================= ОТДЕЛ 11. RESULT ENGINE (FS LOGIC FIX) ================= */
+function finishSpin(){
+    const imgs = [...document.querySelectorAll(".cell img")];
+
+    /* ===== FREE SPINS MODE ===== */
+    if(isFSSpin){
+        freeSpins--;
+        let sum = 0;
+        imgs.forEach(img => { sum += Number(img.dataset.val || 0); });
+        const fsWin = sum / 100;
+
+        let animatedWin = 0;
+        const step = fsWin / 50;
+        const interval = setInterval(()=>{
+            if(animatedWin + step >= fsWin){
+                setBalance(getBalance() + fsWin - animatedWin);
+                animatedWin = fsWin;
+                clearInterval(interval);
+            } else {
+                setBalance(getBalance() + step);
+                animatedWin += step;
+            }
+            updateUI();
+        }, 30);
+
+        if(freeSpins === 0){
+            isFSSpin = false;
+            fsBalance = 0;
+        }
+
+    } else {
+        const counts = {};
+        imgs.forEach(img=>{
+            const name = img.src.split("/").pop();
+            if(payouts[name]) counts[name] = (counts[name] || 0) + 1;
+        });
+
+        let max = 0, best = null;
+        for(let s in counts){
+            if(counts[s] > max){
+                max = counts[s];
+                best = s;
+            }
+        }
+
+        if(max >= 2){
+            const idx = Math.min(max - 2, payouts[best].length - 1);
+            const win = bet * (payouts[best][idx] / 100);
+            setBalance(getBalance() + win);
+            playSound(normalSounds[best]);
+            enableX2(win);
+
+            imgs.forEach(img=>{
+                if(img.src.includes(best)){
+                    const o = document.createElement("img");
+                    o.src = overlays[Math.floor(Math.random()*overlays.length)];
+                    o.className = "overlay";
+                    img.parentElement.appendChild(o);
+                }
+            });
+        }
+
+        const fsCount = imgs.filter(img => img.src.includes("BrandsymbolX.gif")).length;
+        if(fsCount >= 5) freeSpins += fsCount;
+    }
+
+    spinning = false;
+    updateUI();
+
+    // ✅ Новый автоспин
+    if(auto && !isFSSpin){
+        if(autoTimer) clearTimeout(autoTimer);
+        autoTimer = setTimeout(()=>{ doSpin(); autoTimer = null; }, 700);
+    }
+}
+
+/* ================= ОТДЕЛ 12. UI ================= */
+function updateUI(){
+    balanceBtn.textContent = (demo ? "DEMO: " : "REAL: ") + getBalance().toFixed(2);
+    betScore.textContent = bet;
+    fsBtn.textContent = `FREE SPINS: ${freeSpins}`;
+    fsBalanceEl.textContent = `FS BALANCE: ${fsBalance.toFixed(2)}`;
+    // autoBtn больше нет, строка auto убрана
+}
+
+/* ================= ОТДЕЛ 13. EVENTS ================= */
+
+// ===== AUTO ENGINE =====
+let autoInterval = null;
+
+// ===== SPIN (ручной) =====
+spinBtn.onclick = () => {
+    if(!spinning) doSpin();
+};
+
+// ===== AUTO ON / OFF =====
+autoBtn.onclick = () => {
+    auto = !auto;
+    autoBtn.textContent = auto ? "AUTO ON" : "AUTO OFF";
+
+    // === ВКЛЮЧЕНИЕ АВТО ===
+    if(auto){
+        if(autoInterval) return;
+
+        autoInterval = setInterval(() => {
+            // если авто выключили — стоп
+            if(!auto){
+                clearInterval(autoInterval);
+                autoInterval = null;
+                return;
+            }
+
+            // если слот свободен — крутим
+            if(!spinning){
+                doSpin();
+            }
+        }, 300); // скорость автоспина
+    }
+
+    // === ВЫКЛЮЧЕНИЕ АВТО ===
+    else {
+        if(autoInterval){
+            clearInterval(autoInterval);
+            autoInterval = null;
+        }
+    }
+};
+
+// ===== СТАВКА =====
+betMinus.onclick = () => {
+    if(bet > 1) bet--;
+    updateUI();
+};
+
+betPlus.onclick = () => {
+    bet++;
+    updateUI();
+};
+
+// ===== REAL / DEMO =====
+demoBtn.onclick = () => {
+    const newMode = demo ? "real" : "demo";
+    localStorage.setItem("mode", newMode);
+    location.reload();
+};
+
+// ===== PROMO =====
+promoBtn.onclick = () => {
+    const v = +prompt("PROMO");
+    if(v > 0){
+        setBalance(getBalance() + v);
+        updateUI();
+    }
+};
+
+// ===== ЗВУК =====
+soundBtn.onclick = () => soundSlider.hidden = !soundSlider.hidden;
+musicBtn.onclick = () => musicSlider.hidden = !musicSlider.hidden;
+
+soundSlider.oninput = e => soundVolume = +e.target.value;
+musicSlider.oninput = e => {
+    musicVolume = +e.target.value;
+    bg.volume = musicVolume;
+};
+
+ /* ================= ОТДЕЛ 14. INIT ================= */
+ createGrid();
+ updateUI();
+
+</script>
+</body>
+</html>
